@@ -2,10 +2,14 @@ import { useMemo } from 'react';
 
 import classNames from 'classnames';
 
+import { HotKeys } from 'react-hotkeys';
+
+import { replyComposeById, mentionComposeById } from 'mastodon/actions/compose';
 import type { IconProp } from 'mastodon/components/icon';
 import { Icon } from 'mastodon/components/icon';
+import { useAppHistory } from 'mastodon/components/router';
 import Status from 'mastodon/containers/status_container';
-import { useAppSelector } from 'mastodon/store';
+import { useAppSelector, useAppDispatch } from 'mastodon/store';
 
 import { NamesList } from './names_list';
 import type { LabelRenderer } from './notification_group_with_status';
@@ -29,6 +33,9 @@ export const NotificationWithStatus: React.FC<{
   type,
   unread,
 }) => {
+  const history = useAppHistory();
+  const dispatch = useAppDispatch();
+
   const label = useMemo(
     () =>
       labelRenderer({
@@ -41,33 +48,67 @@ export const NotificationWithStatus: React.FC<{
     (state) => state.statuses.getIn([statusId, 'visibility']) === 'direct',
   );
 
-  return (
-    <div
-      role='button'
-      className={classNames(
-        `notification-ungrouped focusable notification-ungrouped--${type}`,
-        {
-          'notification-ungrouped--unread': unread,
-          'notification-ungrouped--direct': isPrivateMention,
-        },
-      )}
-      tabIndex={0}
-    >
-      <div className='notification-ungrouped__header'>
-        <div className='notification-ungrouped__header__icon'>
-          <Icon icon={icon} id={iconId} />
-        </div>
-        {label}
-      </div>
+  const accountId = useAppSelector(
+    (state) =>
+      state.statuses.getIn([statusId, 'account']) as string | undefined,
+  );
+  const acct = useAppSelector(
+    (state) => state.accounts.getIn([accountId, 'acct']) as string | undefined,
+  );
 
-      <Status
-        // @ts-expect-error -- <Status> is not yet typed
-        id={statusId}
-        contextType='notifications'
-        withDismiss
-        skipPrepend
-        avatarSize={40}
-      />
-    </div>
+  const handlers = useMemo(
+    () => ({
+      open: () => {
+        if (acct) history.push(`/@${acct}/${statusId}`);
+      },
+
+      openProfile: () => {
+        if (acct) history.push(`/@${acct}`);
+      },
+
+      reply: () => {
+        dispatch(replyComposeById(statusId, history));
+      },
+
+      mention: () => {
+        dispatch(mentionComposeById(accountId, history));
+      },
+
+      // TODO: boost, favourite, toggleHidden
+    }),
+    [dispatch, history, statusId, accountId, acct],
+  );
+
+  return (
+    <HotKeys handlers={handlers}>
+      <div
+        role='button'
+        className={classNames(
+          `notification-ungrouped focusable notification-ungrouped--${type}`,
+          {
+            'notification-ungrouped--unread': unread,
+            'notification-ungrouped--direct': isPrivateMention,
+          },
+        )}
+        tabIndex={0}
+      >
+        <div className='notification-ungrouped__header'>
+          <div className='notification-ungrouped__header__icon'>
+            <Icon icon={icon} id={iconId} />
+          </div>
+          {label}
+        </div>
+
+        <Status
+          // @ts-expect-error -- <Status> is not yet typed
+          id={statusId}
+          contextType='notifications'
+          withDismiss
+          skipPrepend
+          avatarSize={40}
+          unfocusable
+        />
+      </div>
+    </HotKeys>
   );
 };

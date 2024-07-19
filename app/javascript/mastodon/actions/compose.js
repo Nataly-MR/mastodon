@@ -121,6 +121,18 @@ export function replyCompose(status, routerHistory) {
   };
 }
 
+export function replyComposeById(statusId, routerHistory) {
+  return (dispatch, getState) => {
+    const state = getState();
+    const status = state.statuses.get(statusId);
+
+    if (status) {
+      const account = state.accounts.get(status.get('account'));
+      dispatch(replyCompose(status.set('account', account), routerHistory));
+    }
+  };
+}
+
 export function cancelReplyCompose() {
   return {
     type: COMPOSE_REPLY_CANCEL,
@@ -150,6 +162,12 @@ export function mentionCompose(account, routerHistory) {
     });
 
     ensureComposeIsVisible(getState, routerHistory);
+  };
+}
+
+export function mentionComposeById(accountId, routerHistory) {
+  return (dispatch, getState) => {
+    dispatch(mentionCompose(getState().accounts.get(accountId), routerHistory));
   };
 }
 
