@@ -62,10 +62,6 @@ export const NotificationWithStatus: React.FC<{
         if (acct) history.push(`/@${acct}/${statusId}`);
       },
 
-      openProfile: () => {
-        if (acct) history.push(`/@${acct}`);
-      },
-
       reply: () => {
         dispatch(replyComposeById(statusId, history));
       },

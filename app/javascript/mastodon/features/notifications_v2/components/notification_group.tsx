@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { HotKeys } from 'react-hotkeys';
 
+import { useAppHistory } from 'mastodon/components/router';
 import type { NotificationGroup as NotificationGroupModel } from 'mastodon/models/notification_group';
 import { useAppSelector } from 'mastodon/store';
 
@@ -30,6 +31,16 @@ export const NotificationGroup: React.FC<{
     ),
   );
 
+  const history = useAppHistory();
+
+  const accountId =
+    notificationGroup?.type === 'gap'
+      ? undefined
+      : notificationGroup?.sampleAccountIds[0];
+  const acct = useAppSelector(
+    (state) => state.accounts.getIn([accountId, 'acct']) as string | undefined,
+  );
+
   const handlers = useMemo(
     () => ({
       moveUp: () => {
@@ -39,8 +50,12 @@ export const NotificationGroup: React.FC<{
       moveDown: () => {
         onMoveDown(notificationGroupId);
       },
+
+      openProfile: () => {
+        history.push(`/@${acct}`);
+      },
     }),
-    [notificationGroupId, onMoveUp, onMoveDown],
+    [notificationGroupId, history, acct, onMoveUp, onMoveDown],
   );
 
   if (!notificationGroup || notificationGroup.type === 'gap') return null;
